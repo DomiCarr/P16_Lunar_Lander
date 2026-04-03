@@ -3,11 +3,14 @@
 import { Lander } from '../engine/Lander';
 
 export class LanderRenderer {
-    public static draw(ctx: CanvasRenderingContext2D, lander: Lander): void {
+    /**
+     * Draws the lunar lander with line thickness compensation based on zoom.
+     */
+    public static draw(ctx: CanvasRenderingContext2D, lander: Lander, zoom: number): void {
         const { x, y } = lander.position;
 
         ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 1.5 / zoom; // Maintain thin lines during zoom
 
         // --- Body (Octagonal Capsule) ---
         ctx.beginPath();
@@ -38,13 +41,28 @@ export class LanderRenderer {
         ctx.stroke();
 
         // --- Thruster Radial Flames ---
-        if (lander.isEngineBottomActive) this.drawRadialFlame(ctx, x, y, 'down');
-        if (lander.isEngineLeftActive) this.drawRadialFlame(ctx, x - 9, y - 7, 'left');
-        if (lander.isEngineRightActive) this.drawRadialFlame(ctx, x + 9, y - 7, 'right');
+        if (lander.isEngineBottomActive) {
+            this.drawRadialFlame(ctx, x, y, 'down', zoom);
+        }
+        if (lander.isEngineLeftActive) {
+            this.drawRadialFlame(ctx, x - 9, y - 7, 'left', zoom);
+        }
+        if (lander.isEngineRightActive) {
+            this.drawRadialFlame(ctx, x + 9, y - 7, 'right', zoom);
+        }
     }
 
-    private static drawRadialFlame(ctx: CanvasRenderingContext2D, x: number, y: number, dir: string): void {
+    private static drawRadialFlame(
+        ctx: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        dir: string,
+        zoom: number
+    ): void {
         ctx.beginPath();
+        // Maintain consistent flame line thickness
+        ctx.lineWidth = 1 / zoom;
+
         if (dir === 'down') {
             // Main thruster nozzle plate
             ctx.moveTo(x - 3, y);
