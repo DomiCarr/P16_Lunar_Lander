@@ -7,29 +7,64 @@ export class LanderRenderer {
         const { x, y } = lander.position;
 
         ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
+        ctx.lineWidth = 1.5;
 
-        // Body of the lander
-        ctx.moveTo(x - 8, y);
-        ctx.lineTo(x + 8, y);
-        ctx.lineTo(x + 5, y - 12);
-        ctx.lineTo(x - 5, y - 12);
+        // --- Body (Octagonal Capsule) ---
+        ctx.beginPath();
+        ctx.moveTo(x - 6, y);
+        ctx.lineTo(x - 9, y - 4);
+        ctx.lineTo(x - 9, y - 10);
+        ctx.lineTo(x - 5, y - 14);
+        ctx.lineTo(x + 5, y - 14);
+        ctx.lineTo(x + 9, y - 10);
+        ctx.lineTo(x + 9, y - 4);
+        ctx.lineTo(x + 6, y);
         ctx.closePath();
         ctx.stroke();
 
-        // Draw thruster flames in White
-        if (lander.isEngineBottomActive) this.drawFlame(ctx, x, y, 'down');
-        if (lander.isEngineLeftActive) this.drawFlame(ctx, x - 8, y - 6, 'left');
-        if (lander.isEngineRightActive) this.drawFlame(ctx, x + 8, y - 6, 'right');
+        // --- Landing Gear (Legs and Pads at x +/- 12, y + 4) ---
+        ctx.beginPath();
+        // Left Leg & Pad
+        ctx.moveTo(x - 7, y - 2);
+        ctx.lineTo(x - 12, y + 4);
+        ctx.moveTo(x - 15, y + 4);
+        ctx.lineTo(x - 9, y + 4);
+
+        // Right Leg & Pad
+        ctx.moveTo(x + 7, y - 2);
+        ctx.lineTo(x + 12, y + 4);
+        ctx.moveTo(x + 9, y + 4);
+        ctx.lineTo(x + 15, y + 4);
+        ctx.stroke();
+
+        // --- Thruster Radial Flames ---
+        if (lander.isEngineBottomActive) this.drawRadialFlame(ctx, x, y, 'down');
+        if (lander.isEngineLeftActive) this.drawRadialFlame(ctx, x - 9, y - 7, 'left');
+        if (lander.isEngineRightActive) this.drawRadialFlame(ctx, x + 9, y - 7, 'right');
     }
 
-    private static drawFlame(ctx: CanvasRenderingContext2D, x: number, y: number, dir: string): void {
+    private static drawRadialFlame(ctx: CanvasRenderingContext2D, x: number, y: number, dir: string): void {
         ctx.beginPath();
-        ctx.moveTo(x, y);
-        if (dir === 'down') ctx.lineTo(x, y + 8);
-        if (dir === 'left') ctx.lineTo(x - 5, y);
-        if (dir === 'right') ctx.lineTo(x + 5, y);
+        if (dir === 'down') {
+            // Main thruster nozzle plate
+            ctx.moveTo(x - 3, y);
+            ctx.lineTo(x + 3, y);
+            // 5 Radial lines
+            for (let i = -2; i <= 2; i++) {
+                ctx.moveTo(x + i * 1.5, y);
+                ctx.lineTo(x + i * 4, y + 10);
+            }
+        } else if (dir === 'left') {
+            for (let i = -1; i <= 1; i++) {
+                ctx.moveTo(x, y + i * 2);
+                ctx.lineTo(x - 8, y + i * 4);
+            }
+        } else if (dir === 'right') {
+            for (let i = -1; i <= 1; i++) {
+                ctx.moveTo(x, y + i * 2);
+                ctx.lineTo(x + 8, y + i * 4);
+            }
+        }
         ctx.stroke();
     }
 }

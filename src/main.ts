@@ -42,7 +42,7 @@ let animationFrameCounter = 0;
 let isAnimationFinished = false;
 
 function initLevel(difficulty: number): void {
-  const settings = GAME_CONFIG.DIFFICULTY_SETTINGS[difficulty];
+  const settings = GAME_CONFIG.DIFFICULTY_SETTINGS[difficulty as keyof typeof GAME_CONFIG.DIFFICULTY_SETTINGS];
   const dpr = window.devicePixelRatio || 1;
   const logicalWidth = canvas.width / dpr;
   const logicalHeight = canvas.height / dpr;
@@ -91,9 +91,11 @@ function updateAndRenderGame(): void {
   const viewWidth = canvas.width / dpr;
   const viewHeight = canvas.height / dpr;
 
-  // 1. Calculate Real Altitude
-  const groundY = terrain.getGroundHeight(lander.position.x);
-  const altitude = groundY - lander.position.y;
+  // 1. Apollo Physics: Distance from lowest foot (x +/- 12, y + 4)
+  const footY = lander.position.y + 4;
+  const groundLeft = terrain.getGroundHeight(lander.position.x - 12);
+  const groundRight = terrain.getGroundHeight(lander.position.x + 12);
+  const currentAltitude = Math.min(groundLeft - footY, groundRight - footY);
 
   // 2. Physics & Collisions
   if (collisionResult === 'NONE') {
@@ -103,9 +105,9 @@ function updateAndRenderGame(): void {
     if (collisionResult !== 'NONE') stopEngines(lander);
   }
 
-  // 3. Camera Logic (Binary Zoom)
+  // 3. Camera Logic (Binary Zoom based on currentAltitude)
   const zoomFactor = viewHeight / GAME_CONFIG.CAMERA.TARGET_VIEW_HEIGHT;
-  const currentZoom = (altitude < GAME_CONFIG.CAMERA.ZOOM_ALTITUDE_THRESHOLD) ? zoomFactor : 1;
+  const currentZoom = (currentAltitude < GAME_CONFIG.CAMERA.ZOOM_ALTITUDE_THRESHOLD) ? zoomFactor : 1;
 
   ctx.save();
   if (currentZoom > 1) {
@@ -114,20 +116,21 @@ function updateAndRenderGame(): void {
     ctx.translate(-lander.position.x, -lander.position.y);
   }
 
-  TerrainRenderer.draw(ctx, terrain);
-  handleGameProcess(ctx, lander, collisionResult);
+  // Draw terrain and handle process with current zoom factor
+  TerrainRenderer.draw(ctx, terrain, currentZoom);
+  handleGameProcess(ctx, lander, collisionResult, currentZoom);
   ctx.restore();
 
   // 4. Overlays (Static)
-  HUD.draw(ctx, lander, currentDifficulty, altitude);
+  HUD.draw(ctx, lander, currentDifficulty, currentAltitude);
   if (appState === 'GAME_OVER') {
     renderGameOverOverlay(collisionResult);
   }
 }
 
-function handleGameProcess(ctx: CanvasRenderingContext2D, lander: Lander, state: CollisionResult): void {
+function handleGameProcess(ctx: CanvasRenderingContext2D, lander: Lander, state: CollisionResult, zoom: number): void {
   if (state === 'NONE') {
-    LanderRenderer.draw(ctx, lander);
+    LanderRenderer.draw(ctx, lander, zoom);
     return;
   }
 
@@ -136,7 +139,7 @@ function handleGameProcess(ctx: CanvasRenderingContext2D, lander: Lander, state:
 
   if (!isAnimationFinished) {
     animationFrameCounter++;
-    LanderRenderer.draw(ctx, lander);
+    LanderRenderer.draw(ctx, lander, zoom);
     FinalAnimationRenderer.render(ctx, state, lander, animationFrameCounter, duration);
 
     if (isFinalVictory && animationFrameCounter > 30) {
@@ -148,7 +151,7 @@ function handleGameProcess(ctx: CanvasRenderingContext2D, lander: Lander, state:
       appState = 'GAME_OVER';
     }
   } else {
-    LanderRenderer.draw(ctx, lander);
+    LanderRenderer.draw(ctx, lander, zoom);
     FinalAnimationRenderer.render(ctx, state, lander, duration, duration);
   }
 }
@@ -162,7 +165,7 @@ function renderStartMenu(): void {
   ctx.font = 'bold 48px monospace';
   ctx.fillText(GAME_CONFIG.GAME_TITLE, centerX, centerY - 60);
   ctx.font = '20px monospace';
-  ctx.fillText(`Difficulty ${currentDifficulty} - ${GAME_CONFIG.DIFFICULTY_SETTINGS[currentDifficulty].label}`, centerX, centerY);
+  ctx.fillText(`Difficulty ${currentDifficulty} - ${GAME_CONFIG.DIFFICULTY_SETTINGS[currentDifficulty as keyof typeof GAME_CONFIG.DIFFICULTY_SETTINGS].label}`, centerX, centerY);
   ctx.font = '16px monospace';
   ctx.fillStyle = '#AAAAAA';
   ctx.fillText('PRESS [ENTER] TO START MISSION', centerX, centerY + 60);

@@ -19,17 +19,19 @@ export class CollisionSystem {
         worldWidth: number
     ): CollisionResult {
         const { x, y } = lander.position;
+        const footY = y + 4; // Pads are 4px below the center
 
-        // 1. Horizontal Boundary Check (Sides of the screen)
-        if (x < 0 || x > worldWidth) {
+        // 1. Horizontal Boundary Check (Taking the 24px width into account)
+        if (x - 12 < 0 || x + 12 > worldWidth) {
             return 'CRASHED';
         }
 
-        // 2. Terrain Collision Check
-        const groundY = terrain.getGroundHeight(x);
+        // 2. Terrain Collision Check for both feet
+        const groundYLeft = terrain.getGroundHeight(x - 12);
+        const groundYRight = terrain.getGroundHeight(x + 12);
 
-        // If lander Y is at or below ground altitude
-        if (y >= groundY) {
+        // If either foot Y is at or below ground altitude
+        if (footY >= groundYLeft || footY >= groundYRight) {
             return this.evaluateTouchdown(lander, terrain, maxSafeVelocity);
         }
 
@@ -41,14 +43,16 @@ export class CollisionSystem {
         terrain: TerrainManager,
         maxSafeVelocity: number
     ): CollisionResult {
-        const x = lander.position.x;
+        const { x } = lander.position;
         const velocity = lander.velocity;
 
-        // Check if we are within the horizontal bounds of a landing pad
-        const onPad = terrain.pads.find(pad => x >= pad.x1 && x <= pad.x2);
+        // Success condition: BOTH feet must be within the same landing pad bounds
+        const onPad = terrain.pads.find(pad =>
+            (x - 12) >= pad.x1 && (x + 12) <= pad.x2
+        );
 
         if (!onPad) {
-            return 'CRASHED'; // Hit the mountains
+            return 'CRASHED'; // One or both feet hit the mountains/terrain
         }
 
         // Check landing speed (Magnitude of the velocity vector)
@@ -58,6 +62,6 @@ export class CollisionSystem {
             return 'CRASHED';
         }
 
-        return 'LANDED'; // Perfect landing!
+        return 'LANDED'; // Perfect landing with both feet on the pad!
     }
 }
